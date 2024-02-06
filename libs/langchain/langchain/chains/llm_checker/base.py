@@ -1,4 +1,5 @@
 """Chain for question-answering with self-verification."""
+# 链用于自我验证的问答。
 from __future__ import annotations
 
 import warnings
@@ -63,7 +64,7 @@ def _load_question_to_checked_assertions_chain(
 
 
 class LLMCheckerChain(Chain):
-    """Chain for question-answering with self-verification.
+    """Chain for question-answering with self-verification.  # 链用于自我验证的问答。
 
     Example:
         .. code-block:: python

@@ -1,4 +1,5 @@
 """Chain for summarization with self-verification."""
+# 链用于自我验证的摘要。
 
 from __future__ import annotations
 

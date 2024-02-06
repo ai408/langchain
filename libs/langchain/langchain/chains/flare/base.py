@@ -107,6 +107,7 @@ def _low_confidence_spans(
 class FlareChain(Chain):
     """Chain that combines a retriever, a question generator,
     and a response generator."""
+    # 链条，结合了检索器、问题生成器和响应生成器。
 
     question_generator_chain: QuestionGeneratorChain
     """Chain that generates questions from uncertain spans."""

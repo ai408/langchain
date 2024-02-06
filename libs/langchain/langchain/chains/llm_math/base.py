@@ -8,11 +8,11 @@ from typing import Any, Dict, List, Optional
 
 from langchain_core.language_models import BaseLanguageModel
 from langchain_core.prompts import BasePromptTemplate
-from langchain_core.pydantic_v1 import Extra, root_validator
+from langchain_core.pydantic_v1 import Extra, root_validator  # pydantic_v1是pydantic的一个分支
 
 from langchain.callbacks.manager import (
-    AsyncCallbackManagerForChainRun,
-    CallbackManagerForChainRun,
+    AsyncCallbackManagerForChainRun,  # 用于链运行的异步回调管理器
+    CallbackManagerForChainRun,  # 用于链运行的回调管理器
 )
 from langchain.chains.base import Chain
 from langchain.chains.llm import LLMChain
@@ -20,7 +20,7 @@ from langchain.chains.llm_math.prompt import PROMPT
 
 
 class LLMMathChain(Chain):
-    """Chain that interprets a prompt and executes python code to do math.
+    """Chain that interprets a prompt and executes python code to do math.  # 链用于解释prompt并执行python代码进行数学计算。
 
     Example:
         .. code-block:: python
@@ -40,11 +40,12 @@ class LLMMathChain(Chain):
 
     class Config:
         """Configuration for this pydantic object."""
+        # pydantic对象的配置。
 
-        extra = Extra.forbid
-        arbitrary_types_allowed = True
+        extra = Extra.forbid  # 禁止额外的字段
+        arbitrary_types_allowed = True  # 允许任意类型
 
-    @root_validator(pre=True)
+    @root_validator(pre=True)  # 根验证器
     def raise_deprecation(cls, values: Dict) -> Dict:
         try:
             import numexpr  # noqa: F401
@@ -64,7 +65,7 @@ class LLMMathChain(Chain):
                 values["llm_chain"] = LLMChain(llm=values["llm"], prompt=prompt)
         return values
 
-    @property
+    @property  # 属性装饰器
     def input_keys(self) -> List[str]:
         """Expect input key.
 

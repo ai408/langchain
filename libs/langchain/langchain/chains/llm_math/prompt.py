@@ -38,7 +38,45 @@ Answer: 8.222831614237718
 Question: {question}
 """
 
+# 翻译上述_PROMPT_TEMPLATE为中文注释
+_PROMPT_TEMPLATE_CN = """将数学问题翻译为可使用Python的numexpr库执行的表达式。使用运行此代码的输出来回答问题。
+
+问题：${{带有数学问题的问题。}}
+```text
+${{单行数学表达式，用于解决问题}}
+```
+...numexpr.evaluate(text)...
+```output
+${{运行代码的输出}}
+```
+答案：${{答案}}
+
+开始。
+
+问题：37593 * 67是多少？
+```text
+37593 * 67
+```
+...numexpr.evaluate("37593 * 67")...
+```output
+2518731
+```
+答案：2518731
+
+问题：37593^(1/5)
+```text
+37593**(1/5)
+```
+...numexpr.evaluate("37593**(1/5)")...
+```output
+8.222831614237718
+```
+答案：8.222831614237718
+
+问题：{question}
+"""
+
 PROMPT = PromptTemplate(
-    input_variables=["question"],
-    template=_PROMPT_TEMPLATE,
+    input_variables=["question"],  # 输入变量，即模板中的${{question}}
+    template=_PROMPT_TEMPLATE,  # prompt模板
 )

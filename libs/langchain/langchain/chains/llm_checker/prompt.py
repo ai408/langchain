@@ -25,6 +25,12 @@ _REVISED_ANSWER_TEMPLATE = """{checked_assertions}
 Question: In light of the above assertions and checks, how would you answer the question '{question}'?
 
 Answer:"""
+
+# _REVISED_ANSWER_TEMPLATE中文注释
+_REVISED_ANSWER_TEMPLATE_CN = """{checked_assertions}
+问题：在上述断言和检查的基础上，您将如何回答“{question}”这个问题？
+答案："""
+
 REVISED_ANSWER_PROMPT = PromptTemplate(
     input_variables=["checked_assertions", "question"],
     template=_REVISED_ANSWER_TEMPLATE,

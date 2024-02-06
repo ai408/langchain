@@ -19,7 +19,7 @@ from langchain.chains.llm import LLMChain
 
 
 class HypotheticalDocumentEmbedder(Chain, Embeddings):
-    """Generate hypothetical document for query, and then embed that.
+    """Generate hypothetical document for query, and then embed that.  # 生成假设文档以进行查询，然后嵌入该文档。
 
     Based on https://arxiv.org/abs/2212.10496
     """
