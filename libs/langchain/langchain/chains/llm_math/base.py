@@ -6,14 +6,14 @@ import re
 import warnings
 from typing import Any, Dict, List, Optional
 
+from langchain_core.callbacks import (
+    AsyncCallbackManagerForChainRun,
+    CallbackManagerForChainRun,
+)
 from langchain_core.language_models import BaseLanguageModel
 from langchain_core.prompts import BasePromptTemplate
 from langchain_core.pydantic_v1 import Extra, root_validator  # pydantic_v1是pydantic的一个分支
 
-from langchain.callbacks.manager import (
-    AsyncCallbackManagerForChainRun,  # 用于链运行的异步回调管理器
-    CallbackManagerForChainRun,  # 用于链运行的回调管理器
-)
 from langchain.chains.base import Chain
 from langchain.chains.llm import LLMChain
 from langchain.chains.llm_math.prompt import PROMPT
@@ -26,7 +26,7 @@ class LLMMathChain(Chain):
         .. code-block:: python
 
             from langchain.chains import LLMMathChain
-            from langchain.llms import OpenAI
+            from langchain_community.llms import OpenAI
             llm_math = LLMMathChain.from_llm(OpenAI())
     """
 
