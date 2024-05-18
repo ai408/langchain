@@ -6,6 +6,12 @@ from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.outputs import LLMResult
 
 MODEL_COST_PER_1K_TOKENS = {
+    # GPT-4o input
+    "gpt-4o": 0.005,
+    "gpt-4o-2024-05-13": 0.005,
+    # GPT-4o output
+    "gpt-4o-completion": 0.015,
+    "gpt-4o-2024-05-13-completion": 0.015,
     # GPT-4 input
     "gpt-4": 0.03,
     "gpt-4-0314": 0.03,
@@ -15,6 +21,10 @@ MODEL_COST_PER_1K_TOKENS = {
     "gpt-4-32k-0613": 0.06,
     "gpt-4-vision-preview": 0.01,
     "gpt-4-1106-preview": 0.01,
+    "gpt-4-0125-preview": 0.01,
+    "gpt-4-turbo-preview": 0.01,
+    "gpt-4-turbo": 0.01,
+    "gpt-4-turbo-2024-04-09": 0.01,
     # GPT-4 output
     "gpt-4-completion": 0.06,
     "gpt-4-0314-completion": 0.06,
@@ -24,8 +34,15 @@ MODEL_COST_PER_1K_TOKENS = {
     "gpt-4-32k-0613-completion": 0.12,
     "gpt-4-vision-preview-completion": 0.03,
     "gpt-4-1106-preview-completion": 0.03,
+    "gpt-4-0125-preview-completion": 0.03,
+    "gpt-4-turbo-preview-completion": 0.03,
+    "gpt-4-turbo-completion": 0.03,
+    "gpt-4-turbo-2024-04-09-completion": 0.03,
     # GPT-3.5 input
+    # gpt-3.5-turbo points at gpt-3.5-turbo-0613 until Feb 16, 2024.
+    # Switches to gpt-3.5-turbo-0125 after.
     "gpt-3.5-turbo": 0.0015,
+    "gpt-3.5-turbo-0125": 0.0005,
     "gpt-3.5-turbo-0301": 0.0015,
     "gpt-3.5-turbo-0613": 0.0015,
     "gpt-3.5-turbo-1106": 0.001,
@@ -33,7 +50,10 @@ MODEL_COST_PER_1K_TOKENS = {
     "gpt-3.5-turbo-16k": 0.003,
     "gpt-3.5-turbo-16k-0613": 0.003,
     # GPT-3.5 output
+    # gpt-3.5-turbo points at gpt-3.5-turbo-0613 until Feb 16, 2024.
+    # Switches to gpt-3.5-turbo-0125 after.
     "gpt-3.5-turbo-completion": 0.002,
+    "gpt-3.5-turbo-0125-completion": 0.0015,
     "gpt-3.5-turbo-0301-completion": 0.002,
     "gpt-3.5-turbo-0613-completion": 0.002,
     "gpt-3.5-turbo-1106-completion": 0.002,

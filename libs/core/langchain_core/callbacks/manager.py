@@ -41,6 +41,7 @@ from langchain_core.callbacks.base import (
 )
 from langchain_core.callbacks.stdout import StdOutCallbackHandler
 from langchain_core.messages import BaseMessage, get_buffer_string
+from langchain_core.tracers.schemas import Run
 from langchain_core.utils.env import env_var_is_set
 
 if TYPE_CHECKING:
@@ -67,6 +68,7 @@ def trace_as_chain_group(
     example_id: Optional[Union[str, UUID]] = None,
     run_id: Optional[UUID] = None,
     tags: Optional[List[str]] = None,
+    metadata: Optional[Dict[str, Any]] = None,
 ) -> Generator[CallbackManagerForChainGroup, None, None]:
     """Get a callback manager for a chain group in a context manager.
     Useful for grouping different calls together as a single run even if
@@ -83,6 +85,8 @@ def trace_as_chain_group(
         run_id (UUID, optional): The ID of the run.
         tags (List[str], optional): The inheritable tags to apply to all runs.
             Defaults to None.
+        metadata (Dict[str, Any], optional): The metadata to apply to all runs.
+            Defaults to None.
 
     Note: must have LANGCHAIN_TRACING_V2 env var set to true to see the trace in LangSmith.
 
@@ -95,7 +99,7 @@ def trace_as_chain_group(
             llm_input = "Foo"
             with trace_as_chain_group("group_name", inputs={"input": llm_input}) as manager:
                 # Use the callback manager for the chain group
-                res = llm.predict(llm_input, callbacks=manager)
+                res = llm.invoke(llm_input, {"callbacks": manager})
                 manager.on_chain_end({"output": res})
     """  # noqa: E501
     from langchain_core.tracers.context import _get_trace_callbacks
@@ -106,6 +110,7 @@ def trace_as_chain_group(
     cm = CallbackManager.configure(
         inheritable_callbacks=cb,
         inheritable_tags=tags,
+        inheritable_metadata=metadata,
     )
 
     run_manager = cm.on_chain_start({"name": group_name}, inputs or {}, run_id=run_id)
@@ -141,6 +146,7 @@ async def atrace_as_chain_group(
     example_id: Optional[Union[str, UUID]] = None,
     run_id: Optional[UUID] = None,
     tags: Optional[List[str]] = None,
+    metadata: Optional[Dict[str, Any]] = None,
 ) -> AsyncGenerator[AsyncCallbackManagerForChainGroup, None]:
     """Get an async callback manager for a chain group in a context manager.
     Useful for grouping different async calls together as a single run even if
@@ -157,6 +163,8 @@ async def atrace_as_chain_group(
         run_id (UUID, optional): The ID of the run.
         tags (List[str], optional): The inheritable tags to apply to all runs.
             Defaults to None.
+        metadata (Dict[str, Any], optional): The metadata to apply to all runs.
+            Defaults to None.
     Returns:
         AsyncCallbackManager: The async callback manager for the chain group.
 
@@ -168,7 +176,7 @@ async def atrace_as_chain_group(
             llm_input = "Foo"
             async with atrace_as_chain_group("group_name", inputs={"input": llm_input}) as manager:
                 # Use the async callback manager for the chain group
-                res = await llm.apredict(llm_input, callbacks=manager)
+                res = await llm.ainvoke(llm_input, {"callbacks": manager})
                 await manager.on_chain_end({"output": res})
     """  # noqa: E501
     from langchain_core.tracers.context import _get_trace_callbacks
@@ -176,7 +184,9 @@ async def atrace_as_chain_group(
     cb = _get_trace_callbacks(
         project_name, example_id, callback_manager=callback_manager
     )
-    cm = AsyncCallbackManager.configure(inheritable_callbacks=cb, inheritable_tags=tags)
+    cm = AsyncCallbackManager.configure(
+        inheritable_callbacks=cb, inheritable_tags=tags, inheritable_metadata=metadata
+    )
 
     run_manager = await cm.on_chain_start(
         {"name": group_name}, inputs or {}, run_id=run_id
@@ -967,13 +977,13 @@ class CallbackManagerForToolRun(ParentRunManager, ToolManagerMixin):
 
     def on_tool_end(
         self,
-        output: str,
+        output: Any,
         **kwargs: Any,
     ) -> None:
         """Run when tool ends running.
 
         Args:
-            output (str): The output of the tool.
+            output (Any): The output of the tool.
         """
         handle_event(
             self.handlers,
@@ -1029,11 +1039,11 @@ class AsyncCallbackManagerForToolRun(AsyncParentRunManager, ToolManagerMixin):
         )
 
     @shielded
-    async def on_tool_end(self, output: str, **kwargs: Any) -> None:
+    async def on_tool_end(self, output: Any, **kwargs: Any) -> None:
         """Run when tool ends running.
 
         Args:
-            output (str): The output of the tool.
+            output (Any): The output of the tool.
         """
         await ahandle_event(
             self.handlers,
@@ -1172,6 +1182,7 @@ class CallbackManager(BaseCallbackManager):
         self,
         serialized: Dict[str, Any],
         prompts: List[str],
+        run_id: Optional[UUID] = None,
         **kwargs: Any,
     ) -> List[CallbackManagerForLLMRun]:
         """Run when LLM starts running.
@@ -1186,8 +1197,9 @@ class CallbackManager(BaseCallbackManager):
                 prompt as an LLM run.
         """
         managers = []
-        for prompt in prompts:
-            run_id_ = uuid.uuid4()
+        for i, prompt in enumerate(prompts):
+            # Can't have duplicate runs with the same run ID (if provided)
+            run_id_ = run_id if i == 0 and run_id is not None else uuid.uuid4()
             handle_event(
                 self.handlers,
                 "on_llm_start",
@@ -1220,6 +1232,7 @@ class CallbackManager(BaseCallbackManager):
         self,
         serialized: Dict[str, Any],
         messages: List[List[BaseMessage]],
+        run_id: Optional[UUID] = None,
         **kwargs: Any,
     ) -> List[CallbackManagerForLLMRun]:
         """Run when LLM starts running.
@@ -1236,7 +1249,11 @@ class CallbackManager(BaseCallbackManager):
 
         managers = []
         for message_list in messages:
-            run_id_ = uuid.uuid4()
+            if run_id is not None:
+                run_id_ = run_id
+                run_id = None
+            else:
+                run_id_ = uuid.uuid4()
             handle_event(
                 self.handlers,
                 "on_chat_model_start",
@@ -1509,6 +1526,7 @@ class AsyncCallbackManager(BaseCallbackManager):
         self,
         serialized: Dict[str, Any],
         prompts: List[str],
+        run_id: Optional[UUID] = None,
         **kwargs: Any,
     ) -> List[AsyncCallbackManagerForLLMRun]:
         """Run when LLM starts running.
@@ -1528,7 +1546,11 @@ class AsyncCallbackManager(BaseCallbackManager):
         managers = []
 
         for prompt in prompts:
-            run_id_ = uuid.uuid4()
+            if run_id is not None:
+                run_id_ = run_id
+                run_id = None
+            else:
+                run_id_ = uuid.uuid4()
 
             tasks.append(
                 ahandle_event(
@@ -1566,6 +1588,7 @@ class AsyncCallbackManager(BaseCallbackManager):
         self,
         serialized: Dict[str, Any],
         messages: List[List[BaseMessage]],
+        run_id: Optional[UUID] = None,
         **kwargs: Any,
     ) -> List[AsyncCallbackManagerForLLMRun]:
         """Run when LLM starts running.
@@ -1584,7 +1607,11 @@ class AsyncCallbackManager(BaseCallbackManager):
         managers = []
 
         for message_list in messages:
-            run_id_ = uuid.uuid4()
+            if run_id is not None:
+                run_id_ = run_id
+                run_id = None
+            else:
+                run_id_ = uuid.uuid4()
 
             tasks.append(
                 ahandle_event(
@@ -1887,7 +1914,6 @@ def _configure(
         _configure_hooks,
         _get_tracer_project,
         _tracing_v2_is_enabled,
-        tracing_callback_var,
         tracing_v2_callback_var,
     )
 
@@ -1926,20 +1952,25 @@ def _configure(
         callback_manager.add_metadata(inheritable_metadata or {})
         callback_manager.add_metadata(local_metadata or {}, False)
 
-    tracer = tracing_callback_var.get()
-    tracing_enabled_ = (
-        env_var_is_set("LANGCHAIN_TRACING")
-        or tracer is not None
-        or env_var_is_set("LANGCHAIN_HANDLER")
+    v1_tracing_enabled_ = env_var_is_set("LANGCHAIN_TRACING") or env_var_is_set(
+        "LANGCHAIN_HANDLER"
     )
 
     tracer_v2 = tracing_v2_callback_var.get()
     tracing_v2_enabled_ = _tracing_v2_is_enabled()
+
+    if v1_tracing_enabled_ and not tracing_v2_enabled_:
+        # if both are enabled, can silently ignore the v1 tracer
+        raise RuntimeError(
+            "Tracing using LangChainTracerV1 is no longer supported. "
+            "Please set the LANGCHAIN_TRACING_V2 environment variable to enable "
+            "tracing instead."
+        )
+
     tracer_project = _get_tracer_project()
     debug = _get_debug()
-    if verbose or debug or tracing_enabled_ or tracing_v2_enabled_:
+    if verbose or debug or tracing_v2_enabled_:
         from langchain_core.tracers.langchain import LangChainTracer
-        from langchain_core.tracers.langchain_v1 import LangChainTracerV1
         from langchain_core.tracers.stdout import ConsoleCallbackHandler
 
         if verbose and not any(
@@ -1955,16 +1986,6 @@ def _configure(
             for handler in callback_manager.handlers
         ):
             callback_manager.add_handler(ConsoleCallbackHandler(), True)
-        if tracing_enabled_ and not any(
-            isinstance(handler, LangChainTracerV1)
-            for handler in callback_manager.handlers
-        ):
-            if tracer:
-                callback_manager.add_handler(tracer, True)
-            else:
-                handler = LangChainTracerV1()
-                handler.load_session(tracer_project)
-                callback_manager.add_handler(handler, True)
         if tracing_v2_enabled_ and not any(
             isinstance(handler, LangChainTracer)
             for handler in callback_manager.handlers
@@ -1973,15 +1994,26 @@ def _configure(
                 callback_manager.add_handler(tracer_v2, True)
             else:
                 try:
-                    handler = LangChainTracer(project_name=tracer_project)
+                    handler = LangChainTracer(
+                        project_name=tracer_project,
+                        client=run_tree.client if run_tree is not None else None,
+                    )
                     callback_manager.add_handler(handler, True)
                 except Exception as e:
                     logger.warning(
                         "Unable to load requested LangChainTracer."
                         " To disable this warning,"
                         " unset the LANGCHAIN_TRACING_V2 environment variables.",
-                        e,
+                        f"{repr(e)}",
                     )
+        if run_tree is not None:
+            for handler in callback_manager.handlers:
+                if isinstance(handler, LangChainTracer):
+                    handler.order_map[run_tree.id] = (
+                        run_tree.trace_id,
+                        run_tree.dotted_order,
+                    )
+                    handler.run_map[str(run_tree.id)] = cast(Run, run_tree)
     for var, inheritable, handler_class, env_var in _configure_hooks:
         create_one = (
             env_var is not None
